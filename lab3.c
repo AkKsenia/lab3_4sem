@@ -39,7 +39,7 @@ void* fill_memory_blocks(void* arg) {
 	pthread_mutex_unlock(&fill_mutex);
 }
 
-//Saving to a data file the memory blocks allocated by the thread with the number n mod N/3,
+//saving to a data file the memory blocks allocated by the thread with the number n mod N/3,
 //freeing the memory allocated for these blocks
 void* save_to_file(void* arg) {
 	int n = *(int*)arg;
