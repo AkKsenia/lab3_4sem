@@ -5,6 +5,8 @@
 #include <pthread.h>
 
 
+#define BLOCK_SIZE 30
+
 //to simplify further use
 typedef struct meta_block* block;
 
@@ -18,8 +20,6 @@ struct meta_block {
 	char data[1];//the array’s pointer indicate the end of the meta-data
 };
 void* head = NULL;
-
-#define BLOCK_SIZE 30
 
 //we would like to make sure that only one thread has access to the resource and the rest wait for the resource to be released
 //in the pthreads library, one of the methods to resolve this situation is mutexes:
@@ -195,4 +195,54 @@ void my_free(void* pointer) {
 	}
 
 	pthread_mutex_unlock(&free_lock);
+}
+
+//copying data from one block to another
+void copy_block(block first, block second) {
+	int* f_data, * s_data;
+	f_data = first->pointer;
+	s_data = second->pointer;
+	for (size_t i = 0; i * 8 < first->size && i * 8 < first->size; i++)
+		s_data[i] = f_data[i];
+}
+
+
+//-------IMPLEMENTING REALLOC-------
+
+void* my_realloc(void* pointer, size_t size) {
+	size_t size_;
+	block current_block, new_;
+	void* newptr;
+
+	if (!pointer)
+		return my_malloc(size);//if we pass realloc a NULL pointer, it's supposed to act just like malloc
+
+	if (valid_address(pointer)) {
+		size_ = align8(size);
+		current_block = get_block(pointer);
+		//if we pass it a previously malloced pointer, it should free up space if the size is smaller than the previous size
+		if (current_block->size >= size_) {
+			if (current_block->size - size_ >= (BLOCK_SIZE + 8))
+				split_block(current_block, size_);
+		}
+		else {
+			//if the next block is free and provide enough space, we fusion and try to split if necessary
+			if (current_block->next && current_block->next->is_free && (current_block->size + BLOCK_SIZE + current_block->next->size) >= size_) {
+				fusion(current_block);
+				if (current_block->size - size_ >= (BLOCK_SIZE + 8))
+					split_block(current_block, size_);
+			}
+			else {
+				newptr = my_malloc(size_);//allocate a new block using malloc
+				if (!newptr)
+					return NULL;
+				new_ = get_block(newptr);
+				copy_block(current_block, new_);//copy data from the old one to the new one
+				my_free(pointer);//free the old block
+				return newptr;//return the new pointer
+			}
+		}
+		return pointer;
+	}
+	return NULL;
 }
