@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 
-#define BLOCK_SIZE 30
+#define BLOCK_SIZE 40
 
 //to simplify further use
 typedef struct meta_block* block;
