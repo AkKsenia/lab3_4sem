@@ -28,7 +28,7 @@ pthread_mutex_t malloc_lock, free_lock;
 //find_block will iterate through list and return the block which has size >= size
 block find_block(block* last, size_t size) {
 	block current_block = (block)head;
-	while (current_block && current_block->is_free && current_block->size >= size) {
+	while (current_block && !(current_block->is_free && current_block->size >= size)) {
 		*last = current_block;//we need to keep the last visited chunk, so the malloc function can
 		//easily extends the end of the heap if we found no fitting chunk
 		current_block = current_block->next;
